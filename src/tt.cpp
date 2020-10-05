@@ -17,7 +17,9 @@
 */
 
 #include <cstring>   // For std::memset
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <thread>
 
 #include "bitboard.h"
@@ -154,4 +156,38 @@ int TranspositionTable::hashfull() const {
           cnt += table[i].entry[j].depth8 && (table[i].entry[j].genBound8 & 0xF8) == generation8;
 
   return cnt / ClusterSize;
+}
+
+
+/// TranspositionTable::writeToFile() saves the current state of the hash table
+/// to the file given by the value of the "Hash File" UCI option.
+
+void TranspositionTable::writeToFile() const {
+  const std::string fname = Options["Hash File"];
+  auto ttfile = std::fstream(fname, std::ios::out | std::ios::binary);
+
+  ttfile.write(reinterpret_cast<const char*>(table), clusterCount * sizeof(Cluster));
+  ttfile.close();
+}
+
+
+/// TranspositionTable::readFromFile() reads a saved hash table from the file
+/// given by the value of the "Hash File" UCI option. The value of the "Hash"
+/// UCI option will be changed to match the size of the loaded hash table.
+
+void TranspositionTable::readFromFile() {
+  const std::string fname = Options["Hash File"];
+  auto ttfile = std::fstream(fname, std::ios::in | std::ios::binary);
+
+  // Read the file size
+  ttfile.seekg(0, std::ios::end);
+  const auto size = ttfile.tellg();
+  ttfile.seekg(0, std::ios::beg);
+  const auto mbSize = size / (1024 * 1024);
+
+  Options["Hash"] = std::to_string(mbSize);
+  resize(mbSize);
+
+  ttfile.read(reinterpret_cast<char*>(table), clusterCount * sizeof(Cluster));
+  ttfile.close();
 }

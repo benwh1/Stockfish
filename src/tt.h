@@ -79,6 +79,8 @@ public:
   int hashfull() const;
   void resize(size_t mbSize);
   void clear();
+  void writeToFile() const;
+  void readFromFile();
 
   TTEntry* first_entry(const Key key) const {
     return &table[mul_hi64(key, clusterCount)].entry[0];
