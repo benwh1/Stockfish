@@ -245,6 +245,10 @@ namespace {
     {
         Square ksq = pos.square<KING>(Us);
         Bitboard b = attacks_bb<KING>(ksq) & target;
+
+        // Don't allow king captures
+        b &= ~pos.pieces(~Us);
+
         while (b)
             *moveList++ = make_move(ksq, pop_lsb(&b));
 
@@ -333,6 +337,10 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
 
   // Generate evasions for king, capture and non capture moves
   Bitboard b = attacks_bb<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
+
+  // Don't allow king captures
+  b &= ~pos.pieces(~us);
+
   while (b)
       *moveList++ = make_move(ksq, pop_lsb(&b));
 
