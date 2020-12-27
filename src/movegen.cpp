@@ -100,12 +100,6 @@ namespace {
             }
         }
 
-        while (b1)
-        {
-            Square to = pop_lsb(&b1);
-            *moveList++ = make_move(to - Up, to);
-        }
-
         while (b2)
         {
             Square to = pop_lsb(&b2);
@@ -124,16 +118,12 @@ namespace {
 
         Bitboard b1 = shift<UpRight>(pawnsOn7) & enemies;
         Bitboard b2 = shift<UpLeft >(pawnsOn7) & enemies;
-        Bitboard b3 = shift<Up     >(pawnsOn7) & emptySquares;
 
         while (b1)
             moveList = make_promotions<Type, UpRight>(moveList, pop_lsb(&b1), ksq);
 
         while (b2)
             moveList = make_promotions<Type, UpLeft >(moveList, pop_lsb(&b2), ksq);
-
-        while (b3)
-            moveList = make_promotions<Type, Up     >(moveList, pop_lsb(&b3), ksq);
     }
 
     // Torpedo promotions and underpromotions
