@@ -254,7 +254,7 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
   bool enpassant = false;
 
   if (   ((ss >> col) && (col >= 'a' && col <= 'h'))
-      && ((ss >> row) && (row == (sideToMove == WHITE ? '6' : '3'))))
+      && ((ss >> row)))
   {
       st->epSquare = make_square(File(col - 'a'), Rank(row - '1'));
 
@@ -591,7 +591,6 @@ bool Position::pseudo_legal(const Move m) const {
       if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to) // Not a capture
           && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
           && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
-               && (relative_rank(us, from) == RANK_2)
                && empty(to)
                && empty(to - pawn_push(us))))
           return false;
@@ -748,7 +747,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
               assert(pc == make_piece(us, PAWN));
               assert(to == st->epSquare);
-              assert(relative_rank(us, to) == RANK_6);
               assert(piece_on(to) == NO_PIECE);
               assert(piece_on(capsq) == make_piece(them, PAWN));
           }
@@ -816,7 +814,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (type_of(pc) == PAWN)
   {
       // Set en-passant square if the moved pawn can be captured
-      if (   (int(to) ^ int(from)) == 16
+      if (  ((us == WHITE && to-from == 16 && to < 56)
+          || (us == BLACK && from-to == 16 && to > 7))
           && (pawn_attacks_bb(us, to - pawn_push(us)) & pieces(them, PAWN)))
       {
           st->epSquare = to - pawn_push(us);
@@ -944,7 +943,6 @@ void Position::undo_move(Move m) {
 
               assert(type_of(pc) == PAWN);
               assert(to == st->previous->epSquare);
-              assert(relative_rank(us, to) == RANK_6);
               assert(piece_on(capsq) == NO_PIECE);
               assert(st->capturedPiece == make_piece(~us, PAWN));
           }
@@ -1289,9 +1287,7 @@ bool Position::pos_is_ok() const {
 
   if (   (sideToMove != WHITE && sideToMove != BLACK)
       || piece_on(square<KING>(WHITE)) != W_KING
-      || piece_on(square<KING>(BLACK)) != B_KING
-      || (   ep_square() != SQ_NONE
-          && relative_rank(sideToMove, ep_square()) != RANK_6))
+      || piece_on(square<KING>(BLACK)) != B_KING)
       assert(0 && "pos_is_ok: Default");
 
   if (Fast)
