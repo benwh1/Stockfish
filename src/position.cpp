@@ -595,7 +595,7 @@ bool Position::pseudo_legal(const Move m) const {
           if(n%8 != 0)
               return false;
 
-          if((us == WHITE && from < to) || (us == BLACK && from > to))
+          if((us == WHITE && from > to) || (us == BLACK && from < to))
               return false;
 
           for(int i=0; i<n/8; i++)
