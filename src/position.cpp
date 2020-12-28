@@ -590,6 +590,7 @@ bool Position::pseudo_legal(const Move m) const {
 
       if (   !(pawn_attacks_bb(us, from) & pieces(~us) & to) // Not a capture
           && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
+          && !((from - pawn_push(us) == to) && empty(to))       // Not a backward push
           && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
                && (relative_rank(us, from) == RANK_2)
                && empty(to)

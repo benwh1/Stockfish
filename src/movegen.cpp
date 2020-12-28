@@ -80,17 +80,20 @@ namespace {
 
         Bitboard b1 = shift<Up>(pawnsNotOnRank(7)) & emptySquares;
         Bitboard b2 = shift<Up>(b1 & TRankBB(3))   & emptySquares;
+        Bitboard b3 = shift<-Up>(pawnsNotOnRank(2)) & emptySquares;
 
         if (Type == EVASIONS) // Consider only blocking squares
         {
             b1 &= target;
             b2 &= target;
+            b3 &= target;
         }
 
         if (Type == QUIET_CHECKS)
         {
             b1 &= pawn_attacks_bb(Them, ksq);
             b2 &= pawn_attacks_bb(Them, ksq);
+            b3 &= pawn_attacks_bb(Them, ksq);
 
             // Add pawn pushes which give discovered check. This is possible only
             // if the pawn is not on the same file as the enemy king, because we
@@ -101,9 +104,11 @@ namespace {
             {
                 Bitboard dc1 = shift<Up>(dcCandidateQuiets) & emptySquares & ~file_bb(ksq);
                 Bitboard dc2 = shift<Up>(dc1 & TRankBB(3))  & emptySquares;
+                Bitboard dc3 = shift<Up>(dcCandidateQuiets) & emptySquares & ~file_bb(ksq);
 
                 b1 |= dc1;
                 b2 |= dc2;
+                b3 |= dc3;
             }
         }
 
@@ -117,6 +122,12 @@ namespace {
         {
             Square to = pop_lsb(&b2);
             *moveList++ = make_move(to - Up - Up, to);
+        }
+
+        while (b3)
+        {
+            Square to = pop_lsb(&b3);
+            *moveList++ = make_move(to + Up, to);
         }
     }
 
