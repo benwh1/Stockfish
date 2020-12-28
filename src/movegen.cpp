@@ -49,19 +49,26 @@ namespace {
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard target) {
 
     constexpr Color     Them     = ~Us;
-    constexpr Bitboard  TRank7BB = (Us == WHITE ? Rank7BB    : Rank2BB);
-    constexpr Bitboard  TRank6BB = (Us == WHITE ? Rank6BB    : Rank3BB);
     constexpr Direction Up       = pawn_push(Us);
-    constexpr Direction Up2      = pawn_push(Us) * 2;
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
+    const Bitboard pawns = pos.pieces(Us, PAWN);
+
+    constexpr auto TRankBB = [](int N) -> Bitboard {
+        return Rank1BB << (8 * (Us == WHITE ? N-1 : 8-N));
+    };
+
+    auto pawnsOnRank = [pawns, &TRankBB](int N) -> Bitboard {
+        return pawns & TRankBB(N);
+    };
+
+    auto pawnsNotOnRank = [pawns, &TRankBB](int N) -> Bitboard {
+        return pawns & ~TRankBB(N);
+    };
+
     const Square ksq = pos.square<KING>(Them);
     Bitboard emptySquares;
-
-    Bitboard pawnsOn6       = pos.pieces(Us, PAWN) &  TRank6BB;
-    Bitboard pawnsOn7       = pos.pieces(Us, PAWN) &  TRank7BB;
-    Bitboard pawnsNotOn7    = pos.pieces(Us, PAWN) & ~TRank7BB;
 
     Bitboard enemies = (Type == EVASIONS ? pos.pieces(Them) & target:
                         Type == CAPTURES ? target : pos.pieces(Them));
@@ -71,8 +78,8 @@ namespace {
     {
         emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
 
-        Bitboard b1 = shift<Up>(pawnsNotOn7)   & emptySquares;
-        Bitboard b2 = shift<Up>(b1 & ~TRank7BB) & emptySquares;
+        Bitboard b1 = shift<Up>(pawnsNotOnRank(7)) & emptySquares;
+        Bitboard b2 = shift<Up>(b1 & ~TRankBB(7))  & emptySquares;
 
         if (Type == EVASIONS) // Consider only blocking squares
         {
@@ -89,11 +96,11 @@ namespace {
             // if the pawn is not on the same file as the enemy king, because we
             // don't generate captures. Note that a possible discovery check
             // promotion has been already generated amongst the captures.
-            Bitboard dcCandidateQuiets = pos.blockers_for_king(Them) & pawnsNotOn7;
+            Bitboard dcCandidateQuiets = pos.blockers_for_king(Them) & pawnsNotOnRank(7);
             if (dcCandidateQuiets)
             {
                 Bitboard dc1 = shift<Up>(dcCandidateQuiets) & emptySquares & ~file_bb(ksq);
-                Bitboard dc2 = shift<Up>(dc1 & ~TRank7BB) & emptySquares;
+                Bitboard dc2 = shift<Up>(dc1 & ~TRankBB(7)) & emptySquares;
 
                 b1 |= dc1;
                 b2 |= dc2;
@@ -114,7 +121,7 @@ namespace {
     }
 
     // Promotions and underpromotions
-    if (pawnsOn7)
+    if (pawnsOnRank(7))
     {
         if (Type == CAPTURES)
             emptySquares = ~pos.pieces();
@@ -122,9 +129,9 @@ namespace {
         if (Type == EVASIONS)
             emptySquares &= target;
 
-        Bitboard b1 = shift<UpRight>(pawnsOn7) & enemies;
-        Bitboard b2 = shift<UpLeft >(pawnsOn7) & enemies;
-        Bitboard b3 = shift<Up     >(pawnsOn7) & emptySquares;
+        Bitboard b1 = shift<UpRight>(pawnsOnRank(7)) & enemies;
+        Bitboard b2 = shift<UpLeft >(pawnsOnRank(7)) & enemies;
+        Bitboard b3 = shift<Up     >(pawnsOnRank(7)) & emptySquares;
 
         while (b1)
             moveList = make_promotions<Type, UpRight>(moveList, pop_lsb(&b1), ksq);
@@ -137,7 +144,7 @@ namespace {
     }
 
     // Torpedo promotions and underpromotions
-    if (pawnsOn6)
+    if (pawnsOnRank(6))
     {
         if (Type == CAPTURES)
             emptySquares = ~pos.pieces();
@@ -145,18 +152,18 @@ namespace {
         if (Type == EVASIONS)
             emptySquares &= target;
 
-        Bitboard b1 = shift<Up>(pawnsOn6) & emptySquares;
-        Bitboard b2 = shift<Up>(b1)       & emptySquares;
+        Bitboard b1 = shift<Up>(pawnsOnRank(6)) & emptySquares;
+        Bitboard b2 = shift<Up>(b1)             & emptySquares;
 
         while (b2)
-            moveList = make_promotions<Type, Up2>(moveList, pop_lsb(&b2), ksq);
+            moveList = make_promotions<Type, Up * 2>(moveList, pop_lsb(&b2), ksq);
     }
 
     // Standard and en-passant captures
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
     {
-        Bitboard b1 = shift<UpRight>(pawnsNotOn7) & enemies;
-        Bitboard b2 = shift<UpLeft >(pawnsNotOn7) & enemies;
+        Bitboard b1 = shift<UpRight>(pawnsNotOnRank(7)) & enemies;
+        Bitboard b2 = shift<UpLeft >(pawnsNotOnRank(7)) & enemies;
 
         while (b1)
         {
@@ -178,7 +185,7 @@ namespace {
             if (Type == EVASIONS && !(target & (pos.ep_square() - Up)))
                 return moveList;
 
-            b1 = pawnsNotOn7 & pawn_attacks_bb(Them, pos.ep_square());
+            b1 = pawnsNotOnRank(7) & pawn_attacks_bb(Them, pos.ep_square());
 
             assert(b1);
 
