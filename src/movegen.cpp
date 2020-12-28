@@ -53,15 +53,22 @@ namespace {
     constexpr Direction UpRight  = (Us == WHITE ? NORTH_EAST : SOUTH_WEST);
     constexpr Direction UpLeft   = (Us == WHITE ? NORTH_WEST : SOUTH_EAST);
 
-    constexpr auto TRankNBB = [](int N) -> Bitboard {
+    const Bitboard pawns = pos.pieces(Us, PAWN);
+
+    constexpr auto TRankBB = [](int N) -> Bitboard {
         return Rank1BB << (8 * (Us == WHITE ? N-1 : 8-N));
+    };
+
+    auto pawnsOnRank = [pawns, &TRankBB](int N) -> Bitboard {
+        return pawns & TRankBB(N);
+    };
+
+    auto pawnsNotOnRank = [pawns, &TRankBB](int N) -> Bitboard {
+        return pawns & ~TRankBB(N);
     };
 
     const Square ksq = pos.square<KING>(Them);
     Bitboard emptySquares;
-
-    Bitboard pawnsOn7       = pos.pieces(Us, PAWN) &  TRankNBB(7);
-    Bitboard pawnsNotOn7    = pos.pieces(Us, PAWN) & ~TRankNBB(7);
 
     Bitboard enemies = (Type == EVASIONS ? pos.pieces(Them) & target:
                         Type == CAPTURES ? target : pos.pieces(Them));
@@ -73,10 +80,10 @@ namespace {
 
         Bitboard b[6];
 
-        b[0] = shift<Up>(pawnsNotOn7) & emptySquares;
+        b[0] = shift<Up>(pawnsNotOnRank(7)) & emptySquares;
 
         for(int i=1; i<6; i++)
-            b[i] = shift<Up>(b[i-1] & ~TRankNBB(7)) & emptySquares;
+            b[i] = shift<Up>(b[i-1] & ~TRankBB(7)) & emptySquares;
 
         if (Type == EVASIONS) // Consider only blocking squares
         {
@@ -93,7 +100,7 @@ namespace {
             // if the pawn is not on the same file as the enemy king, because we
             // don't generate captures. Note that a possible discovery check
             // promotion has been already generated amongst the captures.
-            Bitboard dcCandidateQuiets = pos.blockers_for_king(Them) & pawnsNotOn7;
+            Bitboard dcCandidateQuiets = pos.blockers_for_king(Them) & pawnsNotOnRank(7);
             if (dcCandidateQuiets)
             {
                 Bitboard dc[6];
@@ -103,7 +110,7 @@ namespace {
 
                 for(int i=1; i<6; i++)
                 {
-                    dc[i] = shift<Up>(dc[i-1] & ~TRankNBB(7)) & emptySquares;
+                    dc[i] = shift<Up>(dc[i-1] & ~TRankBB(7)) & emptySquares;
                     b[i] |= dc[i];
                 }
             }
@@ -120,7 +127,7 @@ namespace {
     }
 
     // Promotions and underpromotions from the 7th rank
-    if (pawnsOn7)
+    if (pawnsOnRank(7))
     {
         if (Type == CAPTURES)
             emptySquares = ~pos.pieces();
@@ -128,9 +135,9 @@ namespace {
         if (Type == EVASIONS)
             emptySquares &= target;
 
-        Bitboard b1 = shift<UpRight>(pawnsOn7) & enemies;
-        Bitboard b2 = shift<UpLeft >(pawnsOn7) & enemies;
-        Bitboard b3 = shift<Up     >(pawnsOn7) & emptySquares;
+        Bitboard b1 = shift<UpRight>(pawnsOnRank(7)) & enemies;
+        Bitboard b2 = shift<UpLeft >(pawnsOnRank(7)) & enemies;
+        Bitboard b3 = shift<Up     >(pawnsOnRank(7)) & emptySquares;
 
         while (b1)
             moveList = make_promotions<Type, UpRight>(moveList, pop_lsb(&b1), ksq);
@@ -150,11 +157,11 @@ namespace {
         if (Type == EVASIONS)
             emptySquares &= target;
 
-        Bitboard b = shift<Up>(pawnsNotOn7) & emptySquares;
+        Bitboard b = shift<Up>(pawnsNotOnRank(7)) & emptySquares;
 
         #define MAKE_PROMOTIONS(i) { \
             b = shift<Up>(b) & emptySquares; \
-            Bitboard b1 = b & TRankNBB(8); \
+            Bitboard b1 = b & TRankBB(8); \
             while (b1) \
                 moveList = make_promotions<Type, Up * (i + 1)>(moveList, pop_lsb(&b1), ksq); \
         }
@@ -171,8 +178,8 @@ namespace {
     // Standard captures
     if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
     {
-        Bitboard b1 = shift<UpRight>(pawnsNotOn7) & enemies;
-        Bitboard b2 = shift<UpLeft >(pawnsNotOn7) & enemies;
+        Bitboard b1 = shift<UpRight>(pawnsNotOnRank(7)) & enemies;
+        Bitboard b2 = shift<UpLeft >(pawnsNotOnRank(7)) & enemies;
 
         while (b1)
         {
