@@ -37,7 +37,7 @@ namespace {
   constexpr Score WeakUnopposed = S(13, 25);
 
   // Bonus for unopposed pawns
-  constexpr Score Unopposed = S(30, 50);
+  constexpr Score Unopposed = S(60, 80);
 
   // Bonus for blocked pawns at 5th or 6th rank
   constexpr Score BlockedPawn[2] = { S(-15, -3), S(-6, 3) };
