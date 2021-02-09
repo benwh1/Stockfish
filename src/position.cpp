@@ -330,12 +330,13 @@ void Position::set_check_info(StateInfo* si) const {
   si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
   si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
 
+  Color us = side_to_move();
   Square ksq = square<KING>(~sideToMove);
 
   si->checkSquares[PAWN]   = pawn_attacks_bb(~sideToMove, ksq);
   si->checkSquares[KNIGHT] = attacks_bb<KNIGHT>(ksq);
-  si->checkSquares[BISHOP] = attacks_bb<BISHOP>(ksq, pieces());
-  si->checkSquares[ROOK]   = attacks_bb<ROOK>(ksq, pieces());
+  si->checkSquares[BISHOP] = attacks_bb<BISHOP>(ksq, pieces(~us));
+  si->checkSquares[ROOK]   = attacks_bb<ROOK>(ksq, pieces(~us));
   si->checkSquares[QUEEN]  = si->checkSquares[BISHOP] | si->checkSquares[ROOK];
   si->checkSquares[KING]   = 0;
 }
@@ -860,7 +861,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   st->key = k;
 
   // Calculate checkers bitboard (if move gives check)
-  st->checkersBB = givesCheck ? attackers_to(square<KING>(them)) & pieces(us) : 0;
+  st->checkersBB = givesCheck ? attackers_to(square<KING>(them), pieces(~us)) & pieces(us) : 0;
 
   sideToMove = ~sideToMove;
 
