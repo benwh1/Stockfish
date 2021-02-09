@@ -194,10 +194,12 @@ namespace {
 
     [[maybe_unused]] const Bitboard checkSquares = pos.check_squares(Pt);
 
+    Color us = pos.side_to_move();
+
     while (bb) {
         Square from = pop_lsb(&bb);
 
-        Bitboard b = attacks_bb<Pt>(from, pos.pieces()) & target;
+        Bitboard b = attacks_bb<Pt>(from, pos.pieces(~us)) & target;
         if constexpr (Checks)
             b &= checkSquares;
 
@@ -304,7 +306,7 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moveList) {
      Square from = pop_lsb(&dc);
      PieceType pt = type_of(pos.piece_on(from));
 
-     Bitboard b = attacks_bb(pt, from, pos.pieces()) & ~pos.pieces();
+     Bitboard b = attacks_bb(pt, from, pos.pieces(~us)) & ~pos.pieces();
 
      if (pt == KING)
          b &= ~attacks_bb<QUEEN>(pos.square<KING>(~us));
