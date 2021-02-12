@@ -617,7 +617,7 @@ bool Position::pseudo_legal(const Move m) const {
       }
       // In case of king moves under check we have to remove king so as to catch
       // invalid moves like b1a1 when opposite queen is on c1.
-      else if (attackers_to(to, pieces(~us) ^ from) & pieces(~us))
+      else if (attackers_to(to, pieces(us) ^ from) & pieces(~us))
           return false;
   }
 
