@@ -532,7 +532,7 @@ bool Position::legal(Move m) const {
       Direction step = to > from ? WEST : EAST;
 
       for (Square s = to; s != from; s += step)
-          if (attackers_to(s, pieces(~us)) & pieces(~us))
+          if (attackers_to(s, pieces(us)) & pieces(~us))
               return false;
 
       // In case of Chess960, verify if the Rook blocks some checks
