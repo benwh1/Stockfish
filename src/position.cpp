@@ -276,9 +276,9 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
   if (enpassant) {
       st->previous = new StateInfo();
       remove_piece(st->epSquare - pawn_push(sideToMove));
-      st->previous->checkersBB = attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove);
-      st->previous->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), st->previous->pinners[BLACK]);
-      st->previous->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), st->previous->pinners[WHITE]);
+      st->previous->checkersBB = attackers_to(square<KING>(~sideToMove), pieces(~sideToMove)) & pieces(sideToMove);
+      st->previous->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), st->previous->pinners[BLACK], WHITE);
+      st->previous->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), st->previous->pinners[WHITE], BLACK);
       put_piece(make_piece(~sideToMove, PAWN), st->epSquare - pawn_push(sideToMove));
   }
   else
@@ -327,8 +327,8 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 void Position::set_check_info(StateInfo* si) const {
 
-  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK]);
-  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE]);
+  si->blockersForKing[WHITE] = slider_blockers(pieces(BLACK), square<KING>(WHITE), si->pinners[BLACK], WHITE);
+  si->blockersForKing[BLACK] = slider_blockers(pieces(WHITE), square<KING>(BLACK), si->pinners[WHITE], BLACK);
 
   Color us = side_to_move();
   Square ksq = square<KING>(~sideToMove);
@@ -352,7 +352,7 @@ void Position::set_state(StateInfo* si) const {
   si->key = si->materialKey = 0;
   si->pawnKey = Zobrist::noPawns;
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
-  si->checkersBB = attackers_to(square<KING>(sideToMove)) & pieces(~sideToMove);
+  si->checkersBB = attackers_to(square<KING>(sideToMove), pieces(sideToMove)) & pieces(~sideToMove);
 
   set_check_info(si);
 
@@ -463,7 +463,7 @@ const string Position::fen() const {
 /// a pinned or a discovered check piece, according if its color is the opposite
 /// or the same of the color of the slider.
 
-Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners) const {
+Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners, Color c) const {
 
   Bitboard blockers = 0;
   pinners = 0;
@@ -471,7 +471,7 @@ Bitboard Position::slider_blockers(Bitboard sliders, Square s, Bitboard& pinners
   // Snipers are sliders that attack 's' when a piece and other snipers are removed
   Bitboard snipers = (  (attacks_bb<  ROOK>(s) & pieces(QUEEN, ROOK))
                       | (attacks_bb<BISHOP>(s) & pieces(QUEEN, BISHOP))) & sliders;
-  Bitboard occupancy = pieces() ^ snipers;
+  Bitboard occupancy = (c == COLOR_NB ? pieces() : pieces(c)) ^ snipers;
 
   while (snipers)
   {
@@ -532,7 +532,7 @@ bool Position::legal(Move m) const {
       Direction step = to > from ? WEST : EAST;
 
       for (Square s = to; s != from; s += step)
-          if (attackers_to(s) & pieces(~us))
+          if (attackers_to(s, pieces(~us)) & pieces(~us))
               return false;
 
       // In case of Chess960, verify if the Rook blocks some checks
@@ -543,7 +543,7 @@ bool Position::legal(Move m) const {
   // If the moving piece is a king, check whether the destination square is
   // attacked by the opponent.
   if (type_of(piece_on(from)) == KING)
-      return !(attackers_to(to) & pieces(~us));
+      return !(attackers_to(to, pieces(~us)) & pieces(~us));
 
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
@@ -618,7 +618,7 @@ bool Position::pseudo_legal(const Move m) const {
       }
       // In case of king moves under check we have to remove king so as to catch
       // invalid moves like b1a1 when opposite queen is on c1.
-      else if (attackers_to(to, pieces() ^ from) & pieces(~us))
+      else if (attackers_to(to, pieces(~us) ^ from) & pieces(~us))
           return false;
   }
 
@@ -1079,7 +1079,7 @@ bool Position::see_ge(Move m, Value threshold) const {
 
   Bitboard occupied = pieces() ^ from ^ to;
   Color stm = color_of(piece_on(from));
-  Bitboard attackers = attackers_to(to, occupied);
+  Bitboard attackers = attackers_to(to, pieces(~stm) ^ from ^ to);
   Bitboard stmAttackers, bb;
   int res = 1;
 
