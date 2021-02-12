@@ -639,8 +639,8 @@ bool Position::gives_check(Move m) const {
   if (check_squares(type_of(piece_on(from))) & to)
       return true;
 
-  // Is there a discovered check?
-  if (   (blockers_for_king(~sideToMove) & from)
+  // Is there a discovered check or xray check?
+  if (   (blockers_for_king(~sideToMove) & (from | to))
       && !aligned(from, to, square<KING>(~sideToMove)))
       return true;
 
