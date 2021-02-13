@@ -654,7 +654,7 @@ bool Position::gives_check(Move m) const {
       return false;
 
   case PROMOTION:
-      return attacks_bb(promotion_type(m), to, pieces(sideToMove) ^ from) & square<KING>(~sideToMove);
+      return attacks_bb(promotion_type(m), to, pieces(~sideToMove)) & square<KING>(~sideToMove);
 
   // The double-pushed pawn blocked a check? En Passant will remove the blocker.
   // The only discovery check that wasn't handle is through capsq and fromsq
