@@ -670,8 +670,7 @@ bool Position::gives_check(Move m) const {
       Square ksq = square<KING>(~sideToMove);
       Square rto = relative_square(sideToMove, to > from ? SQ_F1 : SQ_D1);
 
-      return   (attacks_bb<ROOK>(rto) & ksq)
-            && (attacks_bb<ROOK>(rto, pieces() ^ from ^ to) & ksq);
+      return attacks_bb<ROOK>(rto, pieces(~sideToMove)) & ksq;
   }
   }
 }
