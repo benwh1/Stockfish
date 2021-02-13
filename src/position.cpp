@@ -670,13 +670,33 @@ bool Position::gives_check(Move m) const {
   case PROMOTION:
       return attacks_bb(promotion_type(m), to, pieces(~sideToMove)) & square<KING>(~sideToMove);
 
-  // The double-pushed pawn blocked a check? En Passant will remove the blocker.
-  // The only discovery check that wasn't handle is through capsq and fromsq
-  // So the King must be in the same rank as fromsq to consider this possibility.
-  // st->previous->blockersForKing consider capsq as empty.
   case EN_PASSANT:
-      return st->previous->checkersBB || (rank_of(square<KING>(~sideToMove)) == rank_of(from)
-          && st->previous->blockersForKing[~sideToMove] & from);
+  {
+      // The double-pushed pawn blocked a check? En Passant will remove the blocker.
+      if (st->previous->checkersBB)
+          return true;
+
+      // The only discovered check that wasn't handled is through capsq and fromsq
+      // So the King must be in the same rank as fromsq to consider this possibility.
+      // st->previous->blockersForKing consider capsq as empty.
+      if (rank_of(square<KING>(~sideToMove)) == rank_of(from)
+          && st->previous->blockersForKing[~sideToMove] & from)
+          return true;
+
+      // If the double-pushed pawn is a blocker, removing it will unveil an
+      // xray check. This case should only happen if the king is in the same
+      // file as the pawns (other positions are handled by the previous two
+      // cases).
+      Square capsq = to - pawn_push(sideToMove);
+      if (blockers_for_king(~sideToMove) & capsq)
+      {
+          assert(file_of(square<KING>(~sideToMove)) == file_of(to));
+          return true;
+      }
+
+      // Otherwise there is no check
+      return false;
+  }
 
   default: //CASTLING
   {
