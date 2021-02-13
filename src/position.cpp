@@ -544,10 +544,24 @@ bool Position::legal(Move m) const {
   if (type_of(piece_on(from)) == KING)
       return !(attackers_to(to, pieces(us)) & pieces(~us));
 
-  // A non-king move is legal if and only if it is not pinned or it
-  // is moving along the ray towards or away from the king.
-  return   !(blockers_for_king(us) & from)
-        ||  aligned(from, to, square<KING>(us));
+  // Pinned pieces
+  if (blockers_for_king(us) & from)
+  {
+      Square ksq = square<KING>(us);
+
+      // Moving a pinned piece out of the pin is illegal.
+      if (!aligned(from, to, ksq))
+          return false;
+    
+      // If moving a pinned piece, check that it doesn't become unpinned by
+      // jumping over the king. If the piece has jumped over the king, then
+      // exactly one of 'from' and 'to' is less than 'ksq'.
+      if ((from < ksq) ^ (to < ksq))
+          return false;
+  }
+
+  // Otherwise the move is legal.
+  return true;
 }
 
 
