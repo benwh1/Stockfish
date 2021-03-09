@@ -233,8 +233,11 @@ namespace {
             break;
         case EVASIONS:
         {
-            Square checksq = lsb(pos.checkers());
-            target = between_bb(pos.square<KING>(Us), checksq) | checksq;
+            // The line of squares from the king to the nearest checking piece
+            // including the checking piece, but excluding the king.
+            Square closest = msb(pos.checkers()) < pos.square<KING>(Us) ?
+                             msb(pos.checkers()) : lsb(pos.checkers());
+            target = between_bb(closest, pos.square<KING>(Us)) | closest;
             break;
         }
         case NON_EVASIONS:

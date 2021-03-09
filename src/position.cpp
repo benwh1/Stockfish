@@ -621,12 +621,17 @@ bool Position::pseudo_legal(const Move m) const {
   {
       if (type_of(pc) != KING)
       {
-          // Double check? In this case a king move is required
-          if (more_than_one(checkers()))
-              return false;
+          // All checking pieces (if there are more than one) will all be lined
+          // up along a line, and will be checking through each other. We must
+          // either capture the piece closest to the king along the line, or
+          // block the checks between the king and the closest piece.
+          // The nearest piece is either the msb or the lsb, depending on the
+          // position of the king.
+          assert((msb(checkers()) < square<KING>(us)) || (lsb(checkers()) > square<KING>(us)));
+          Square closest = msb(checkers()) < square<KING>(us) ?
+                           msb(checkers()) : lsb(checkers());
 
-          // Our move must be a blocking evasion or a capture of the checking piece
-          if (!((between_bb(lsb(checkers()), square<KING>(us)) | checkers()) & to))
+          if (!((between_bb(closest, square<KING>(us)) | closest) & to))
               return false;
       }
       // In case of king moves under check we have to remove king so as to catch
