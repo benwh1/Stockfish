@@ -19,6 +19,7 @@
 #ifndef SEARCH_H_INCLUDED
 #define SEARCH_H_INCLUDED
 
+#include <stack>
 #include <vector>
 
 #include "misc.h"
@@ -103,6 +104,8 @@ extern LimitsType Limits;
 
 void init();
 void clear();
+
+extern std::stack<Move> moveStack;
 
 } // namespace Search
 

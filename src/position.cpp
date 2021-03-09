@@ -88,6 +88,10 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
          << "\nTablebases DTZ: " << std::setw(4) << dtz << " (" << s2 << ")";
   }
 
+  os << "\nLegal moves:";
+  for (const auto& m : MoveList<LEGAL>(pos))
+      os << " " << UCI::move(m, pos.is_chess960());
+
   return os;
 }
 
@@ -755,6 +759,17 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
   assert(color_of(pc) == us);
   assert(captured == NO_PIECE || color_of(captured) == (type_of(m) != CASTLING ? them : us));
+  if(type_of(captured) == KING){
+      auto stack = Search::moveStack;
+      std::cout << IO_LOCK;
+      while(!stack.empty()){
+          const Move move = stack.top();
+          stack.pop();
+
+          std::cout << UCI::move(move, is_chess960()) << " ";
+      }
+      std::cout << sync_endl;
+  }
   assert(type_of(captured) != KING);
 
   if (type_of(m) == CASTLING)

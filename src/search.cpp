@@ -38,6 +38,7 @@
 namespace Search {
 
   LimitsType Limits;
+  std::stack<Move> moveStack;
 }
 
 namespace Tablebases {
@@ -174,9 +175,11 @@ namespace {
             cnt = 1, nodes++;
         else
         {
+            moveStack.push(m);
             pos.do_move(m, st);
             cnt = leaf ? MoveList<LEGAL>(pos).size() : perft<false>(pos, depth - 1);
             nodes += cnt;
+            moveStack.pop();
             pos.undo_move(m);
         }
         if (Root)
@@ -935,6 +938,7 @@ namespace {
                                                                           [pos.moved_piece(move)]
                                                                           [to_sq(move)];
 
+                moveStack.push(move);
                 pos.do_move(move, st);
 
                 // Perform a preliminary qsearch to verify that the move holds
@@ -944,6 +948,7 @@ namespace {
                 if (value >= probCutBeta)
                     value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode);
 
+                moveStack.pop();
                 pos.undo_move(move);
 
                 if (value >= probCutBeta)
@@ -1149,6 +1154,7 @@ moves_loop: // When in check, search starts from here
                                                                 [to_sq(move)];
 
       // Step 14. Make the move
+      moveStack.push(move);
       pos.do_move(move, st, givesCheck);
 
       // Step 15. Reduced depth search (LMR, ~200 Elo). If the move fails high it will be
@@ -1285,6 +1291,7 @@ moves_loop: // When in check, search starts from here
       }
 
       // Step 17. Undo move
+      moveStack.pop();
       pos.undo_move(move);
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
@@ -1597,8 +1604,10 @@ moves_loop: // When in check, search starts from here
           continue;
 
       // Make and search the move
+      moveStack.push(move);
       pos.do_move(move, st, givesCheck);
       value = -qsearch<NT>(pos, ss+1, -beta, -alpha, depth - 1);
+      moveStack.pop();
       pos.undo_move(move);
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
