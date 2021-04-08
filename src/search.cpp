@@ -1682,7 +1682,15 @@ moves_loop: // When in check, search starts from here
     {
         assert(!MoveList<LEGAL>(pos).size());
 
-        return mated_in(ss->ply); // Plies to mate from the root
+        constexpr Color CastlingSide = WHITE;
+        Color us = pos.side_to_move();
+
+        if (CastlingSide == ~us && type_of((ss-1)->currentMove) == CASTLING) {
+            return mated_in(ss->ply); // Plies to mate from the root
+        }
+        else {
+            return VALUE_DRAW;
+        }
     }
 
     // Save gathered info in transposition table
