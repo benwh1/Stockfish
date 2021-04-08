@@ -1413,10 +1413,24 @@ moves_loop: // When in check, search starts from here
 
     assert(moveCount || !ss->inCheck || excludedMove || !MoveList<LEGAL>(pos).size());
 
-    if (!moveCount)
-        bestValue = excludedMove ? alpha :
-                    ss->inCheck  ? mated_in(ss->ply)
-                                 : VALUE_DRAW;
+    constexpr Color CastlingSide = WHITE;
+
+    if (!moveCount) {
+        if (excludedMove) {
+            bestValue = alpha;
+        }
+        else if (ss->inCheck) {
+            if (CastlingSide == ~us && type_of((ss-1)->currentMove) == CASTLING) {
+                bestValue = mated_in(ss->ply);
+            }
+            else {
+                bestValue = VALUE_DRAW;
+            }
+        }
+        else {
+            bestValue = VALUE_DRAW;
+        }
+    }
 
     // If there is a move which produces search value greater than alpha we update stats of searched moves
     else if (bestMove)
