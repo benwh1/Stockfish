@@ -234,15 +234,39 @@ namespace {
 
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
+        constexpr Color CastlingSide = WHITE;
         Square ksq = pos.square<KING>(Us);
-        Bitboard b = attacks_bb<KING>(ksq) & target;
-        while (b)
-            *moveList++ = make_move(ksq, pop_lsb(b));
 
-        if ((Type != CAPTURES) && pos.can_castle(Us & ANY_CASTLING))
-            for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
-                if (!pos.castling_impeded(cr) && pos.can_castle(cr))
-                    *moveList++ = make<CASTLING>(ksq, pos.castling_rook_square(cr));
+        if constexpr (Us != CastlingSide) {
+            Bitboard b = attacks_bb<KING>(ksq) & target;
+            while (b)
+                *moveList++ = make_move(ksq, pop_lsb(b));
+
+            if ((Type != CAPTURES) && pos.can_castle(Us & ANY_CASTLING))
+                for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } )
+                    if (!pos.castling_impeded(cr) && pos.can_castle(cr))
+                        *moveList++ = make<CASTLING>(ksq, pos.castling_rook_square(cr));
+        }
+        else {
+            if ((Type != CAPTURES) && pos.can_castle(Us & ANY_CASTLING)) {
+                for (CastlingRights cr : { Us & KING_SIDE, Us & QUEEN_SIDE } ) {
+                    if (!pos.castling_impeded(cr) && pos.can_castle(cr)) {
+                        Move castling = make<CASTLING>(ksq, pos.castling_rook_square(cr));
+
+                        // Check if castling gives check, and test if it's checkmate by doing
+                        // the move and seeing if the opponent has any legal moves
+                        if (pos.gives_check(castling)) {
+                            StateInfo stateInfo;
+                            const_cast<Position&>(pos).do_move(castling, stateInfo);
+                            if (MoveList<LEGAL>(pos).size() == 0) {
+                                *moveList++ = castling;
+                            }
+                            const_cast<Position&>(pos).undo_move(castling);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     return moveList;
