@@ -180,18 +180,34 @@ namespace {
 
     static_assert(Pt != KING && Pt != PAWN, "Unsupported piece type in generate_moves()");
 
+    Color us = pos.side_to_move();
+
     Bitboard bb = piecesToMove & pos.pieces(Pt);
 
     while (bb)
     {
         Square from = pop_lsb(bb);
 
-        Bitboard b = attacks_bb<Pt>(from, pos.pieces()) & target;
-        if constexpr (Checks)
-            b &= pos.check_squares(Pt);
+        bool ok = true;
+        if constexpr (Pt == ROOK) {
+            // Check if moving a rook will remove the last of our castling rights
+            constexpr Color CastlingSide = WHITE;
+            if (us == CastlingSide) {
+                if ((relative_square(us, from) == SQ_A1 && pos.castling_rights(us) == WHITE_OOO) ||
+                    (relative_square(us, from) == SQ_H1 && pos.castling_rights(us) == WHITE_OO)) {
+                    ok = false;
+                }
+            }
+        }
 
-        while (b)
-            *moveList++ = make_move(from, pop_lsb(b));
+        if (ok) {
+            Bitboard b = attacks_bb<Pt>(from, pos.pieces()) & target;
+            if constexpr (Checks)
+                b &= pos.check_squares(Pt);
+
+            while (b)
+                *moveList++ = make_move(from, pop_lsb(b));
+        }
     }
 
     return moveList;
@@ -336,12 +352,6 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moveList) {
   assert(pos.checkers());
 
   Color us = pos.side_to_move();
-  Square ksq = pos.square<KING>(us);
-
-  // Generate evasions for king
-  Bitboard b = attacks_bb<KING>(ksq) & ~pos.pieces(us);
-  while (b)
-      *moveList++ = make_move(ksq, pop_lsb(b));
 
   if (more_than_one(pos.checkers()))
       return moveList; // Double check, only a king move can save the day
